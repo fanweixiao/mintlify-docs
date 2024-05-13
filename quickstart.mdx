@@ -1,55 +1,166 @@
 ---
 title: 'Quickstart'
-description: 'Start building awesome documentation in under 5 minutes'
+description: 'Start building LLM Function Calling in under 5 minutes'
 ---
 
 ## Setup your development
 
-Learn how to update your docs locally and and deploy them to the public.
+Write your fist Function Calling Serverless
 
-### Edit and preview
+### Prepare
 
 <AccordionGroup>
-  <Accordion icon="github" title="Clone your docs locally">
-    During the onboarding process, we created a repository on your Github with
-    your docs content. You can find this repository on our
-    [dashboard](https://dashboard.mintlify.com). To clone the repository
-    locally, follow these
-    [instructions](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)
-    in your terminal.
+  <Accordion icon="rectangle-terminal" title="Create account on vivgrid">
+    Create account by loggin on our [dashboard](https://dash.vivgrid.com).
+    Create a new ``` Project ```
   </Accordion>
-  <Accordion icon="rectangle-terminal" title="Preview changes">
-    Previewing helps you make sure your changes look as intended. We built a
-    command line interface to render these changes locally. 1. Install the
-    [Mintlify CLI](https://www.npmjs.com/package/mintlify) to preview the
-    documentation changes locally with this command: ``` npm i -g mintlify ```
-    2. Run the following command at the root of your documentation (where
-    `mint.json` is): ``` mintlify dev ```
+  <Accordion icon="github" title="Install the Stateful Serverless Framework: YoMo">
+    ``` curl -fsSL https://get.yomo.run | sh ```
   </Accordion>
 </AccordionGroup>
 
-### Deploy your changes
+## Write your first Function Calling Serverless
+
+```golang app.go
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"log/slog"
+	"net/http"
+	"os"
+
+	"github.com/joho/godotenv"
+	"github.com/yomorun/yomo/ai"
+	"github.com/yomorun/yomo/serverless"
+)
+
+func DataTags() []uint32 {
+	return []uint32{0x11}
+}
+
+func Init() error {
+	// if API_KEY is absent in ENV, read from .env
+	if _, ok := os.LookupEnv("API_KEY"); !ok {
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatal("Error loading .env file")
+			os.Exit(-1)
+		}
+	}
+	return nil
+}
+
+type Parameter struct {
+	SourceCurrency string  `json:"source" jsonschema:"description=The source currency to be queried in 3-letter ISO 4217 format"`
+	TargetCurrency string  `json:"target" jsonschema:"description=The target currency to be queried in 3-letter ISO 4217 format"`
+	Amount         float64 `json:"amount" jsonschema:"description=The amount of the currency to be converted to the target currency"`
+}
+
+func Description() string {
+	return `if user asks currency exchange rate related questions, you should call this function. But if the source currency is other than USD (US Dollar), you should ignore calling tools.`
+}
+
+func InputSchema() any {
+	return &Parameter{}
+}
+
+func Handler(ctx serverless.Context) {
+	fcCtx, err := ai.ParseFunctionCallContext(ctx)
+	if err != nil {
+		slog.Error("[sfn] NewFunctionCallingParameters error", "err", err)
+		return
+	}
+
+	var msg Parameter
+	err = fcCtx.UnmarshalArguments(&msg)
+	if err != nil {
+		slog.Error("[sfn] json.Marshal error", "err", err)
+		return
+	}
+
+	rate, err := fetchRate(msg.SourceCurrency, msg.TargetCurrency, msg.Amount)
+	if err != nil {
+		slog.Error("[sfn] >> fetchRate error", "err", err)
+		fcCtx.WriteErrors(err)
+		return
+	}
+
+	result := fmt.Sprintf("based on today's exchange rate: %f, %f %s is equivalent to approximately %f %s", rate, msg.Amount, msg.SourceCurrency, msg.Amount*rate, msg.TargetCurrency)
+	if rate == 0 {
+		result = fmt.Sprintf("can not understand the target currency %s", msg.TargetCurrency)
+	}
+
+	err = fcCtx.Write(result)
+
+	if err != nil {
+		slog.Error("[sfn] >> write error", "err", err)
+	}
+}
+
+type Rates struct {
+	Rates map[string]float64 `json:"rates"`
+}
+
+func fetchRate(sourceCurrency string, targetCurrency string, _ float64) (float64, error) {
+	resp, err := http.Get(fmt.Sprintf("https://openexchangerates.org/api/latest.json?app_id=%s&base=%s&symbols=%s", os.Getenv("API_KEY"), sourceCurrency, targetCurrency))
+	if err != nil {
+		return 0, err
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, err
+	}
+
+	var rt *Rates
+	err = json.Unmarshal(body, &rt)
+	if err != nil {
+		return 0, err
+	}
+
+	return getRates(targetCurrency, rt)
+}
+
+func getRates(targetCurrency string, rates *Rates) (float64, error) {
+	if rates == nil {
+		return 0, fmt.Errorf("can not get the target currency, target currency is %s", targetCurrency)
+	}
+
+	if rate, ok := rates.Rates[targetCurrency]; ok {
+		return rate, nil
+	}
+
+	return 0, fmt.Errorf("can not get the target currency, target currency is %s", targetCurrency)
+}
+```
+
+## Deploy to vivgrid
 
 <AccordionGroup>
-
-<Accordion icon="message-bot" title="Install our Github app">
-  Our Github app automatically deploys your changes to your docs site, so you
-  don't need to manage deployments yourself. You can find the link to install on
-  your [dashboard](https://dashboard.mintlify.com). Once the bot has been
-  successfully installed, there should be a check mark next to the commit hash
-  of the repo.
-</Accordion>
-<Accordion icon="rocket" title="Push your changes">
-  [Commit and push your changes to
-  Git](https://docs.github.com/en/get-started/using-git/pushing-commits-to-a-remote-repository#about-git-push)
-  for your changes to update in your docs site. If you push and don't see that
-  the Github app successfully deployed your changes, you can also manually
-  update your docs through our [dashboard](https://dashboard.mintlify.com).
-</Accordion>
-
+  <Accordion icon="message-bot" title="Install the cli">
+    We provide ```yc``` cli to ease the provisioning stage, install it by:
+    ``` curl -fsSL https://get.yomo.run | sh ```
+  </Accordion>
+  <Accordion icon="rocket" title="Deploy your serverless to all regions">
+  create a ```yc.yaml ``` file at the root of your project directory, then execute 
+    ``` yc upload app.go ```, then ``` yc deploy ```
+  </Accordion>
 </AccordionGroup>
 
-## Update your docs
+## Try it
+
+```sh
+curl -v -i https://openai.vivgrid.com/v1/chat/completions \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer <YOUR_TOKEN>" \
+-d '{"model": "gpt-4-turbo", "messages": [{"role": "user", "content": "my Vercel pg database service cost $0.1 per hour, how much will I pay in JPY every month?"}], "stream": true}'
+```
 
 Add content directly in your files with MDX syntax and React components. You can use any of our components, or even build your own.
 
