@@ -140,7 +140,13 @@ func getRates(targetCurrency string, rates *Rates) (float64, error) {
 }
 ```
 
-## Deploy to vivgrid
+Run your Function Calling Serverless local:
+
+```sh
+yomo run app.go -z 'zipper.allegrocloud.io:9000' -n 'cc-dev' -d '<YOUR_TOKEN>'
+```
+
+## Deploy to vivgrid as Geo-distributed Serverless
 
 <AccordionGroup>
   <Accordion icon="message-bot" title="Install the cli">
