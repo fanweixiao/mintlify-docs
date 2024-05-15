@@ -146,6 +146,12 @@ yomo run app.go -z 'zipper.allegrocloud.io:9000' -n 'cc-dev' -d '<YOUR_VIVGRID_T
   <Accordion icon="rocket" title="Deploy your serverless to all regions">
   create a ```yc.yaml ``` file at the root of your project directory, then execute 
     ``` yc upload --src app.go ```, followed by ``` yc create ``` to create the deployment.
+		the ```yc.yaml``` file should look like this:
+		```yaml
+		app-key: <APP_KEY>
+		app-secret: <APP_SECRET>
+		sfn-name: llm_sfn_currency_converter
+		```
   </Accordion>
 </AccordionGroup>
 
