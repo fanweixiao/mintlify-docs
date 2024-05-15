@@ -3,16 +3,17 @@ title: 'Quickstart'
 description: 'Start building LLM Function Calling in under 5 minutes'
 ---
 
-## Setup your development
+## Setup your development environment
 
-Write your fist Function Calling Serverless
+Write your fist Function Calling Serverless.
 
 ### Prepare
 
 <AccordionGroup>
   <Accordion icon="rectangle-terminal" title="Create account on vivgrid">
-    Create account by loggin on our [dashboard](https://dash.vivgrid.com).
-    Create a new ``` Project ```
+    Create account by logging in to our [dashboard](https://dash.vivgrid.com).
+    Create a new ``` Project ```. You will get ``` APP_KEY ``` and ``` APP_SECRET ```, 
+		later, you will need ```env YOUR_VIVGRID_TOKEN=app-key-secret:<APP_KEY>|<APP_SECRET>``` to deploy your serverless.
   </Accordion>
   <Accordion icon="github" title="Install the Stateful Serverless Framework: YoMo">
     ``` curl -fsSL https://get.yomo.run | sh ```
@@ -38,10 +39,12 @@ import (
 	"github.com/yomorun/yomo/serverless"
 )
 
+// Implement DataTags() to observe data with the given tags
 func DataTags() []uint32 {
 	return []uint32{0x11}
 }
 
+// Implement Init() for state initialization, such as loading LLM Model to GPU memory.
 func Init() error {
 	// if API_KEY is absent in ENV, read from .env
 	if _, ok := os.LookupEnv("API_KEY"); !ok {
@@ -54,38 +57,36 @@ func Init() error {
 	return nil
 }
 
+// Parameters needed for OpenAI Function Calling
+// ref: https://platform.openai.com/docs/guides/function-calling
 type Parameter struct {
 	SourceCurrency string  `json:"source" jsonschema:"description=The source currency to be queried in 3-letter ISO 4217 format"`
 	TargetCurrency string  `json:"target" jsonschema:"description=The target currency to be queried in 3-letter ISO 4217 format"`
 	Amount         float64 `json:"amount" jsonschema:"description=The amount of the currency to be converted to the target currency"`
 }
 
+// Implement Description() to define the description of OpenAI Function Calling
+// ref: https://platform.openai.com/docs/guides/function-calling
 func Description() string {
 	return `if user asks currency exchange rate related questions, you should call this function. But if the source currency is other than USD (US Dollar), you should ignore calling tools.`
 }
 
+// Implement InputSchema() to define the input schema of the function
 func InputSchema() any {
 	return &Parameter{}
 }
 
+// Implement Handler() to handle the function call
 func Handler(ctx serverless.Context) {
-	fcCtx, err := ai.ParseFunctionCallContext(ctx)
-	if err != nil {
-		slog.Error("[sfn] NewFunctionCallingParameters error", "err", err)
-		return
-	}
+	llmCtx, _ := ai.ParseFunctionCallContext(ctx)
 
 	var msg Parameter
-	err = fcCtx.UnmarshalArguments(&msg)
-	if err != nil {
-		slog.Error("[sfn] json.Marshal error", "err", err)
-		return
-	}
+	_ = fcCtx.UnmarshalArguments(&msg)
 
 	rate, err := fetchRate(msg.SourceCurrency, msg.TargetCurrency, msg.Amount)
 	if err != nil {
 		slog.Error("[sfn] >> fetchRate error", "err", err)
-		fcCtx.WriteErrors(err)
+		llmCtx.WriteErrors(err)
 		return
 	}
 
@@ -94,39 +95,28 @@ func Handler(ctx serverless.Context) {
 		result = fmt.Sprintf("can not understand the target currency %s", msg.TargetCurrency)
 	}
 
-	err = fcCtx.Write(result)
-
-	if err != nil {
-		slog.Error("[sfn] >> write error", "err", err)
-	}
+	llmCtx.Write(result)
 }
 
+// Rates is the struct for the response of the exchange rate API
 type Rates struct {
 	Rates map[string]float64 `json:"rates"`
 }
 
+// fetchRate fetches the exchange rate from the API
 func fetchRate(sourceCurrency string, targetCurrency string, _ float64) (float64, error) {
-	resp, err := http.Get(fmt.Sprintf("https://openexchangerates.org/api/latest.json?app_id=%s&base=%s&symbols=%s", os.Getenv("API_KEY"), sourceCurrency, targetCurrency))
-	if err != nil {
-		return 0, err
-	}
-
+	resp, _ := http.Get(fmt.Sprintf("https://openexchangerates.org/api/latest.json?app_id=%s&base=%s&symbols=%s", os.Getenv("API_KEY"), sourceCurrency, targetCurrency))
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return 0, err
-	}
+	body, _ := io.ReadAll(resp.Body)
 
 	var rt *Rates
-	err = json.Unmarshal(body, &rt)
-	if err != nil {
-		return 0, err
-	}
+	_ = json.Unmarshal(body, &rt)
 
 	return getRates(targetCurrency, rt)
 }
 
+// getRates gets the target currency from the response
 func getRates(targetCurrency string, rates *Rates) (float64, error) {
 	if rates == nil {
 		return 0, fmt.Errorf("can not get the target currency, target currency is %s", targetCurrency)
@@ -140,22 +130,22 @@ func getRates(targetCurrency string, rates *Rates) (float64, error) {
 }
 ```
 
-Run your Function Calling Serverless local:
+Run your Function Calling Serverless locally:
 
 ```sh
-yomo run app.go -z 'zipper.allegrocloud.io:9000' -n 'cc-dev' -d '<YOUR_TOKEN>'
+yomo run app.go -z 'zipper.allegrocloud.io:9000' -n 'cc-dev' -d '<YOUR_VIVGRID_TOKEN>'
 ```
 
 ## Deploy to vivgrid as Geo-distributed Serverless
 
 <AccordionGroup>
   <Accordion icon="message-bot" title="Install the cli">
-    We provide ```yc``` cli to ease the provisioning stage, install it by:
-    ``` curl -fsSL https://get.yomo.run | sh ```
+    We provide the ```yc``` cli to ease the provisioning stage, install it:
+    ``` curl "https://bina.egoist.dev/yomorun/yc" | sh ```
   </Accordion>
   <Accordion icon="rocket" title="Deploy your serverless to all regions">
   create a ```yc.yaml ``` file at the root of your project directory, then execute 
-    ``` yc upload app.go ```, then ``` yc deploy ```
+    ``` yc upload --src app.go ```, followed by ``` yc create ``` to create the deployment.
   </Accordion>
 </AccordionGroup>
 
@@ -164,11 +154,9 @@ yomo run app.go -z 'zipper.allegrocloud.io:9000' -n 'cc-dev' -d '<YOUR_TOKEN>'
 ```sh
 curl -v -i https://openai.vivgrid.com/v1/chat/completions \
 -H "Content-Type: application/json" \
--H "Authorization: Bearer <YOUR_TOKEN>" \
--d '{"model": "gpt-4-turbo", "messages": [{"role": "user", "content": "my Vercel pg database service cost $0.1 per hour, how much will I pay in JPY every month?"}], "stream": true}'
+-H "Authorization: Bearer <YOUR_VIVGRID_TOKEN>" \
+-d '{"model": "gpt-4o", "messages": [{"role": "user", "content": "my Vercel pg database service cost $0.1 per hour, how much will I pay in JPY every month?"}], "stream": true}'
 ```
-
-Add content directly in your files with MDX syntax and React components. You can use any of our components, or even build your own.
 
 <CardGroup>
 
