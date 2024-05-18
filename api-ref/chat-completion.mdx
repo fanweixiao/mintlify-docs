@@ -1,0 +1,42 @@
+---
+title: 'Chat API'
+description: 'OpenAI API compatible Chat Completion API'
+icon: 'text-size'
+---
+
+## Create Chat Completion
+
+[OpenAI Chat Completion API](https://platform.openai.com/docs/api-reference/chat) compitable API with `gpt-4o` model.
+
+```sh
+curl https://openai.vivgrid.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -d '{
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
+        "role": "user",
+        "content": "Hello!"
+      }
+    ]
+  }'
+```
+
+### Authentication
+
+`$API_TOKEN` can be found on your dashboard.
+
+### Global Latency Improved
+
+<Frame>
+  <img src="/images/geoping-chat-vivgrid.jpg" style={{ borderRadius: '0.5rem' }} />
+</Frame>
+
+<Frame>
+  <img src="/images/geoping-chat-openai.jpg" style={{ borderRadius: '0.5rem' }} />
+</Frame>

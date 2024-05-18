@@ -1,0 +1,32 @@
+---
+title: 'Audio API'
+description: 'OpenAI API compatible Audio API'
+icon: 'microphone'
+---
+
+[OpenAI Audio API](https://platform.openai.com/docs/api-reference/audio) compitable API with `whisper-1` model.
+
+## Create transcription
+
+Compitable with [OpenAI Create Transcription API](https://platform.openai.com/docs/api-reference/audio/createTranscription)
+
+```sh
+curl https://gpu.vivgrid.com/v1/audio/transcriptions \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -H "Content-Type: multipart/form-data" \
+  -F file="@voice.wav" \
+  -F model="whisper-1"
+```
+
+## Create translation 
+
+Compitable with [OpenAI Create Translation API](https://platform.openai.com/docs/api-reference/audio/createTranslation)
+
+
+```sh
+curl https://gpu.vivgrid.com/v1/audio/translations \  
+  -H "Authorization: Bearer $API_TOKEN" \
+  -H "Content-Type: multipart/form-data" \
+  -F file="@voice.wav" \
+  -F model="whisper-1"
+```
