@@ -1,19 +1,23 @@
 ---
-title: 'Quick Start'
-description: 'Learn how to deploy NextChat to Vercel and extend abilities with Function Calling by Vivgrid AI Bridge'
+title: "Quick Start"
+description: "Learn how to deploy NextChat to Vercel and extend abilities with Function Calling by Vivgrid AI Bridge"
 ---
 
 <Tip>
-  This guide will help you get started with Vivgrid OpenAI Bridge. You will learn how to extend your 
-  AI Agent abilities by [OpenAI Function Calling](/function-calling).
+  This guide will help you get started with Vivgrid OpenAI Bridge. You will
+  learn how to extend your AI Agent abilities by [OpenAI Function
+  Calling](/function-calling).
 </Tip>
 
-### Step 1. Fork and Deploy [NextChat](https://github.com/ChatGPTNextWeb/ChatGPT-Next-Web) to [Vercel](https://vercel.com/). 
+### Step 1. Fork and Deploy [NextChat](https://github.com/ChatGPTNextWeb/ChatGPT-Next-Web) to [Vercel](https://vercel.com/).
 
 Configure the environment variables in Vercel:
 
 <Frame>
-  <img src="/images/quick-start-vercel-nextchat.jpg" style={{ borderRadius: '0.5rem' }} />
+  <img
+    src="/images/quick-start-vercel-nextchat.jpg"
+    style={{ borderRadius: "0.5rem" }}
+  />
 </Frame>
 
 - `BASE_URL`: `https://openai.vivgrid.com`
@@ -24,13 +28,19 @@ Configure the environment variables in Vercel:
 You will see the followings:
 
 <Frame>
-  <img src="/images/quick-start-nextchat-1.jpg" style={{ borderRadius: '0.5rem' }} />
+  <img
+    src="/images/quick-start-nextchat-1.jpg"
+    style={{ borderRadius: "0.5rem" }}
+  />
 </Frame>
 
 OpenAI can not answer this question, but we can extend the `gpt-4o` model capabilities by [Function Calling](https://platform.openai.com/docs/guides/function-calling) feature, OpenAI has great cookbook on [how to call functions with chat models](https://cookbook.openai.com/examples/how_to_call_functions_with_chat_models), but it's complex to implement and maintain:
 
 <Frame>
-  <img src="/images/quick-start-nextchat-2.jpg" style={{ borderRadius: '0.5rem' }} />
+  <img
+    src="/images/quick-start-nextchat-2.jpg"
+    style={{ borderRadius: "0.5rem" }}
+  />
 </Frame>
 
 ### Step 3. Implement OpenAI Function Calling Serverless in Strong-typed language to extend the abilities of your AI Agent.
@@ -46,14 +56,14 @@ Create a function `ping` to measure the network performance for a given website:
 ```go app.go
 func ping(domain string) {
   // get all ip addresses
-	ips, _ := net.LookupIP(domain)
+  ips, _ := net.LookupIP(domain)
 
-	// get the first ip address and measure latency by ping
-	pinger, _ := ping.NewPinger(ips[0].String())
-	pinger.Count = 3
-	pinger.Timeout = time.Second * 3
-   // blocks until finished
-	pinger.Run()   
+  // get the first ip address and measure latency by ping
+  pinger, _ := ping.NewPinger(ips[0].String())
+  pinger.Count = 3
+  pinger.Timeout = time.Second * 3
+  // blocks until finished
+  pinger.Run()
 
   // get send/receive/rtt stats
   stats := pinger.Statistics()
@@ -62,7 +72,7 @@ func ping(domain string) {
   slog.Info("[sfn] get ping latency", "domain", msg.Domain, "ip", ips[0], "latency", stats.AvgRtt, "PacketLoss", fmt.Sprintf("%f%%", stats.PacketLoss))
 
   // return result to OpenAI as this is required by OpenAI spec
-	return fmt.Sprintf("domain %s has ip %s with average latency %s, make sure answer with the IP address and Latency", msg.Domain, ips[0], stats.AvgRtt)
+  return fmt.Sprintf("domain %s has ip %s with average latency %s, make sure answer with the IP address and Latency", msg.Domain, ips[0], stats.AvgRtt)
 }
 ```
 
@@ -72,7 +82,7 @@ First, we need define the `description` for our function, this helps OpenAI to u
 
 ```go app.go
 func Description() string {
-	return `if user asks ip or network latency of a domain, you should return the result of the giving domain. try your best to dissect user expressions to infer the right domain names`
+  return `if user asks ip or network latency of a domain, you should return the result of the giving domain. try your best to dissect user expressions to infer the right domain names`
 }
 ```
 
@@ -81,12 +91,12 @@ The `ping()` requires a domain name as parameter, we will ask OpenAI to inferenc
 ```go app.go
 // Parameter defines the data type
 type Parameter struct {
-	Domain string `json:"domain" jsonschema:"description=Domain of the website, e.g. example.com"`
+  Domain string `json:"domain" jsonschema:"description=Domain of the website, e.g. example.com"`
 }
 
 // InputSchema defines the arguments data type for the OpenAI tools_call
 func InputSchema() any {
-	return &Parameter{}
+  return &Parameter{}
 }
 ```
 
@@ -148,7 +158,8 @@ yc upload --src app.go && yc create
 ```
 
 <Tip>
-  **important** Make sure you have the `yc` CLI installed, if not, [install it follows here](/yc).
+  **important** Make sure you have the `yc` CLI installed, if not, [install it
+  follows here](/yc).
 </Tip>
 
 Deployed successfully, we will watch real-time logs and ask the question "Compare amazon and shopify network performance" again:
@@ -171,9 +182,15 @@ $ yc logs
 Our AI Agent can now answer the question with network performance comparison:
 
 <Frame>
-  <img src="/images/quick-start-nextchat-3.jpg" style={{ borderRadius: '0.5rem' }} />
+  <img
+    src="/images/quick-start-nextchat-3.jpg"
+    style={{ borderRadius: "0.5rem" }}
+  />
 </Frame>
 
 <Tip>
-  **Do you know?** Your Stateful Serverless Function will be deployed to multiple regions automatically, by this, computing is closer to your users, this will reduce the latency and improve the user experience. For Free Plan users, there are 7 regions available.
+  **Do you know?** Your Stateful Serverless Function will be deployed to
+  multiple regions automatically, by this, computing is closer to your users,
+  this will reduce the latency and improve the user experience. For Free Plan
+  users, there are 7 regions available.
 </Tip>
