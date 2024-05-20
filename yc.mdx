@@ -1,6 +1,75 @@
 ---
-title: 'CLI yc'
+title: 'CLI - yc'
 description: 'Learn how to deploy your serverless with yc cli'
 ---
 
-WIP
+`yc` is the cli tool for deploying your serverless across the globe with Vivgrid.
+
+## Install
+
+```bash
+curl "https://bina.egoist.dev/yomorun/yc" | sh
+```
+
+## Usage
+
+`yc --help` to see all sub-commands.
+
+### yc upload
+
+This command will compile your serverless function after upload to Vivgrid hosting.
+
+```bash
+yc upload --src app.go
+```
+
+### yc create
+
+This command will create the deployments.
+
+```bash
+yc create
+```
+
+### yc remove
+
+This command will remove the deployments.
+
+```bash
+yc remove
+```
+
+### yc status
+
+This command will show the status of the deployments.
+
+```bash
+yc status
+```
+
+### yc logs
+
+This command will show the real-time logs of the deployments.
+
+```bash
+yc logs
+```
+
+Terminate the logs by pressing `Ctrl + C`.
+
+### yc start
+
+This command will start the serverless.
+
+```bash
+yc start
+```
+
+### yc stop
+
+This command will stop the deployments.
+
+```bash
+yc stop
+```
+
