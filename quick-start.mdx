@@ -113,6 +113,7 @@ func Handler(ctx serverless.Context) {
   // parse the arguments from OpenAI tools_call
   var msg Parameter
   ctx.ReadLLMArguments(&msg)
+  slog.Info("triggered", "domain", msg.Domain)
   // execute linux ping command to get result
   result := ping(msg.Domain)
   // write the result back to OpenAI for next round chat completions request
@@ -167,16 +168,16 @@ Deployed successfully, we will watch real-time logs and ask the question "Compar
 ```bash
 $ yc logs
 
-[sgp.1] OK: {"log":"2024-05-20T23:08:42.220413202Z 2024/05/20 23:08:42 INFO *fired* domain=amazon.com"}
-[sgp.1] OK: {"log":"2024-05-20T23:08:42.221512798Z 2024/05/20 23:08:42 INFO *fired* domain=shopify.com"}
-[sgp.1] OK: {"log":"2024-05-20T23:08:42.257850096Z 2024/05/20 23:08:42 INFO [sfn] get ip domain=amazon.com ip=205.251.242.103"}
-[sgp.1] OK: {"log":"2024-05-20T23:08:42.257891142Z 2024/05/20 23:08:42 INFO [sfn] get ip domain=amazon.com ip=54.239.28.85"}
-[sgp.1] OK: {"log":"2024-05-20T23:08:42.257903435Z 2024/05/20 23:08:42 INFO [sfn] start ping domain=amazon.com ip=205.251.242.103"}
-[sgp.1] OK: {"log":"2024-05-20T23:08:42.257897714Z 2024/05/20 23:08:42 INFO [sfn] get ip domain=amazon.com ip=52.94.236.248"}
-[sgp.1] OK: {"log":"2024-05-20T23:08:42.404537491Z 2024/05/20 23:08:42 INFO [sfn] get ip domain=shopify.com ip=23.227.38.33"}
-[sgp.1] OK: {"log":"2024-05-20T23:08:42.404576213Z 2024/05/20 23:08:42 INFO [sfn] start ping domain=shopify.com ip=23.227.38.33"}
-[sgp.1] OK: {"log":"2024-05-20T23:08:44.467687064Z 2024/05/20 23:08:44 INFO [sfn] get ping latency domain=shopify.com ip=23.227.38.33 latency=2.182382ms PacketLoss=0.000000%"}
-[sgp.1] OK: {"log":"2024-05-20T23:08:44.579711153Z 2024/05/20 23:08:44 INFO [sfn] get ping latency domain=amazon.com ip=205.251.242.103 latency=232.835894ms PacketLoss=0.000000%"}
+[sgp.1] OK: {"log":"INFO triggered domain=amazon.com"}
+[sgp.1] OK: {"log":"INFO triggered domain=shopify.com"}
+[sgp.1] OK: {"log":"INFO [sfn] get ip domain=amazon.com ip=205.251.242.103"}
+[sgp.1] OK: {"log":"INFO [sfn] get ip domain=amazon.com ip=54.239.28.85"}
+[sgp.1] OK: {"log":"INFO [sfn] start ping domain=amazon.com ip=205.251.242.103"}
+[sgp.1] OK: {"log":"INFO [sfn] get ip domain=amazon.com ip=52.94.236.248"}
+[sgp.1] OK: {"log":"INFO [sfn] get ip domain=shopify.com ip=23.227.38.33"}
+[sgp.1] OK: {"log":"INFO [sfn] start ping domain=shopify.com ip=23.227.38.33"}
+[sgp.1] OK: {"log":"INFO [sfn] get ping latency domain=shopify.com ip=23.227.38.33 latency=2.182382ms PacketLoss=0.000000%"}
+[sgp.1] OK: {"log":"INFO [sfn] get ping latency domain=amazon.com ip=205.251.242.103 latency=232.835894ms PacketLoss=0.000000%"}
 ```
 
 Our AI Agent can now answer the question with network performance comparison:
