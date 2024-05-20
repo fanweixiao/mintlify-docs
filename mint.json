@@ -52,9 +52,10 @@
     {
       "group": "Get Started",
       "pages": [
+        "quick-start",
         "introduction",
-        "quickstart",
-        "development"
+        "function-calling",
+        "yc"
       ]
     },
     {

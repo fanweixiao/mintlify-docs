@@ -1,0 +1,179 @@
+---
+title: 'Quick Start'
+description: 'Learn how to deploy NextChat to Vercel and extend abilities with Function Calling by Vivgrid AI Bridge'
+---
+
+<Tip>
+  This guide will help you get started with Vivgrid OpenAI Bridge. You will learn how to extend your 
+  AI Agent abilities by [OpenAI Function Calling](/function-calling).
+</Tip>
+
+### Step 1. Fork and Deploy [NextChat](https://github.com/ChatGPTNextWeb/ChatGPT-Next-Web) to [Vercel](https://vercel.com/). 
+
+Configure the environment variables in Vercel:
+
+<Frame>
+  <img src="/images/quick-start-vercel-nextchat.jpg" style={{ borderRadius: '0.5rem' }} />
+</Frame>
+
+- `BASE_URL`: `https://openai.vivgrid.com`
+- `OPENAI_API_KEY`: get from [Vivgrid Dashboard](https://dashboard.vivgrid.com)
+
+### Step 2. Try to ask "Compare amazon and shopify network performance" in your AI Agent.
+
+You will see the followings:
+
+<Frame>
+  <img src="/images/quick-start-nextchat-1.jpg" style={{ borderRadius: '0.5rem' }} />
+</Frame>
+
+OpenAI can not answer this question, but we can extend the `gpt-4o` model capabilities by [Function Calling](https://platform.openai.com/docs/guides/function-calling) feature, OpenAI has great cookbook on [how to call functions with chat models](https://cookbook.openai.com/examples/how_to_call_functions_with_chat_models), but it's complex to implement and maintain:
+
+<Frame>
+  <img src="/images/quick-start-nextchat-2.jpg" style={{ borderRadius: '0.5rem' }} />
+</Frame>
+
+### Step 3. Implement OpenAI Function Calling Serverless in Strong-typed language to extend the abilities of your AI Agent.
+
+Let's try to implement a `ping` Function Calling serverless in Go, before this, you need to install the [YoMo Framework](https://yomo.run):
+
+```bash
+curl -fsSL https://get.yomo.run | sh
+```
+
+Create a function `ping` to measure the network performance for a given website:
+
+```go app.go
+func ping(domain string) {
+  // get all ip addresses
+	ips, _ := net.LookupIP(domain)
+
+	// get the first ip address and measure latency by ping
+	pinger, _ := ping.NewPinger(ips[0].String())
+	pinger.Count = 3
+	pinger.Timeout = time.Second * 3
+   // blocks until finished
+	pinger.Run()   
+
+  // get send/receive/rtt stats
+  stats := pinger.Statistics()
+
+  // log the result
+  slog.Info("[sfn] get ping latency", "domain", msg.Domain, "ip", ips[0], "latency", stats.AvgRtt, "PacketLoss", fmt.Sprintf("%f%%", stats.PacketLoss))
+
+  // return result to OpenAI as this is required by OpenAI spec
+	return fmt.Sprintf("domain %s has ip %s with average latency %s, make sure answer with the IP address and Latency", msg.Domain, ips[0], stats.AvgRtt)
+}
+```
+
+Next, we need to wrap it to meet the spec of OpenAI Function Calling, luckily, we have YoMo to help us:
+
+First, we need define the `description` for our function, this helps OpenAI to understand the function, it's very important for the accuracy. What we need to do is to implement the `Description` function in the `app.go`:
+
+```go app.go
+func Description() string {
+	return `if user asks ip or network latency of a domain, you should return the result of the giving domain. try your best to dissect user expressions to infer the right domain names`
+}
+```
+
+The `ping()` requires a domain name as parameter, we will ask OpenAI to inference the domain name from the user input, and pass it by `Arguments` in `tools_call`:
+
+```go app.go
+// Parameter defines the data type
+type Parameter struct {
+	Domain string `json:"domain" jsonschema:"description=Domain of the website, e.g. example.com"`
+}
+
+// InputSchema defines the arguments data type for the OpenAI tools_call
+func InputSchema() any {
+	return &Parameter{}
+}
+```
+
+Finally, we need to wrap it as a stateful serverless function:
+
+```go app.go
+// DataTags defines the topic which observed by this function
+func DataTags() []uint32 {
+  return []uint32{0x10}
+}
+
+// Handler will be triggered when OpenAI tools_call occurs
+func Handler(ctx serverless.Context) {
+  // parse the arguments from OpenAI tools_call
+  var msg Parameter
+  ctx.ReadLLMArguments(&msg)
+  // execute linux ping command to get result
+  result := ping(msg.Domain)
+  // write the result back to OpenAI for next round chat completions request
+  ctx.WriteLLMResult(result)
+}
+```
+
+Run it local to test. Create a `.env` file with the following content:
+
+```bash .env
+YOMO_SFN_NAME=llm_sfn_get_ip_lantency
+YOMO_SFN_ZIPPER=z.viv.ac:9000
+YOMO_SFN_CREDENTIAL=app-key-secret:<VIVGRID_APP_KEY>|<VIVGRID_APP_SECRET>
+```
+
+then run:
+
+```bash
+yomo run app.go
+
+ℹ️   YoMo Stream Function file: /Users/CC/_wrk/llm-sfn-get-ip-and-latency/sfn.yomo
+⌛   Create YoMo Stream Function instance...
+ℹ️   Starting YoMo Stream Function instance with zipper: z.viv.ac:9000
+ℹ️   Stream Function is running...
+ℹ️   Run: /Users/fanweixiao/_wrk/llm-sfn-get-ip-and-latency/sfn.yomo
+time=2024-05-20T22:50:44.883+07:00 level=INFO msg="connected to zipper" component=StreamFunction sfn_id=<YOUR_APP_ID> sfn_name=llm_sfn_get_ip_lantency zipper_addr=z.viv.ac:9000
+```
+
+### 4. Deploy to Vivgrid
+
+After test, create a file `yc.yaml` with contents:
+
+```yaml yc.yaml
+app-key: <VIVGRID_APP_KEY>
+app-secret: <VIVGRID_APP_SECRET>
+sfn-name: llm_sfn_get_ip_lantency
+```
+
+then run:
+
+```bash
+yc upload --src app.go && yc create
+```
+
+<Tip>
+  **important** Make sure you have the `yc` CLI installed, if not, [install it follows here](/yc).
+</Tip>
+
+Deployed successfully, we will watch real-time logs and ask the question "Compare amazon and shopify network performance" again:
+
+```bash
+$ yc logs
+
+[sgp.1] OK: {"log":"2024-05-20T23:08:42.220413202Z 2024/05/20 23:08:42 INFO *fired* domain=amazon.com"}
+[sgp.1] OK: {"log":"2024-05-20T23:08:42.221512798Z 2024/05/20 23:08:42 INFO *fired* domain=shopify.com"}
+[sgp.1] OK: {"log":"2024-05-20T23:08:42.257850096Z 2024/05/20 23:08:42 INFO [sfn] get ip domain=amazon.com ip=205.251.242.103"}
+[sgp.1] OK: {"log":"2024-05-20T23:08:42.257891142Z 2024/05/20 23:08:42 INFO [sfn] get ip domain=amazon.com ip=54.239.28.85"}
+[sgp.1] OK: {"log":"2024-05-20T23:08:42.257903435Z 2024/05/20 23:08:42 INFO [sfn] start ping domain=amazon.com ip=205.251.242.103"}
+[sgp.1] OK: {"log":"2024-05-20T23:08:42.257897714Z 2024/05/20 23:08:42 INFO [sfn] get ip domain=amazon.com ip=52.94.236.248"}
+[sgp.1] OK: {"log":"2024-05-20T23:08:42.404537491Z 2024/05/20 23:08:42 INFO [sfn] get ip domain=shopify.com ip=23.227.38.33"}
+[sgp.1] OK: {"log":"2024-05-20T23:08:42.404576213Z 2024/05/20 23:08:42 INFO [sfn] start ping domain=shopify.com ip=23.227.38.33"}
+[sgp.1] OK: {"log":"2024-05-20T23:08:44.467687064Z 2024/05/20 23:08:44 INFO [sfn] get ping latency domain=shopify.com ip=23.227.38.33 latency=2.182382ms PacketLoss=0.000000%"}
+[sgp.1] OK: {"log":"2024-05-20T23:08:44.579711153Z 2024/05/20 23:08:44 INFO [sfn] get ping latency domain=amazon.com ip=205.251.242.103 latency=232.835894ms PacketLoss=0.000000%"}
+```
+
+Our AI Agent can now answer the question with network performance comparison:
+
+<Frame>
+  <img src="/images/quick-start-nextchat-3.jpg" style={{ borderRadius: '0.5rem' }} />
+</Frame>
+
+<Tip>
+  **Do you know?** Your Stateful Serverless Function will be deployed to multiple regions automatically, by this, computing is closer to your users, this will reduce the latency and improve the user experience. For Free Plan users, there are 7 regions available.
+</Tip>
