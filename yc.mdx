@@ -3,9 +3,12 @@ title: 'CLI - yc'
 description: 'Learn how to deploy your serverless with yc cli'
 ---
 
-`yc` is the cli tool for deploying your serverless across the globe with Vivgrid.
+`yc` is the command-line interface (CLI) tool for deploying your serverless functions on Vivgrid. 
+It provides a convenient way to manage your deployments and serverless instances globally.
 
-## Install
+## Installation
+
+To install `yc`, you can use the following command:
 
 ```bash
 curl "https://bina.egoist.dev/yomorun/yc" | sh
@@ -15,7 +18,19 @@ curl "https://bina.egoist.dev/yomorun/yc" | sh
 
 `yc --help` to see all sub-commands.
 
-### yc upload
+### yc deploy [FILE]...
+
+This command will deploy your serverless function to Vivgrid hosting.
+
+```bash
+yc deploy app.go
+```
+
+### Manage serverless deployment
+
+Your serverless code will be uploaded to Vivgrid and compiled by `yc upload` command, after that, you can create the deployments by `yc create` command.
+
+#### yc upload
 
 This command will compile your serverless function after upload to Vivgrid hosting.
 
@@ -23,7 +38,7 @@ This command will compile your serverless function after upload to Vivgrid hosti
 yc upload --src app.go
 ```
 
-### yc create
+#### yc create
 
 This command will create the deployments.
 
@@ -31,15 +46,19 @@ This command will create the deployments.
 yc create
 ```
 
-### yc remove
+#### yc remove
 
-This command will remove the deployments.
+This command will delete the deployments.
 
 ```bash
 yc remove
 ```
 
-### yc status
+### Manage serverless state
+
+Once the deployment is created, you can manage the state of the deployments. `yc start` will start the serverless on all regions. Requests will be routed to the nearest region by Vivgrid Geo-distributed Network.
+
+#### yc status
 
 This command will show the status of the deployments.
 
@@ -47,29 +66,30 @@ This command will show the status of the deployments.
 yc status
 ```
 
-### yc logs
+#### yc start
 
-This command will show the real-time logs of the deployments.
+This command will start serverless instances in all regions.
+
+```bash
+yc start
+```
+
+#### yc stop
+
+This command will stop serverless instances in all regions.
+
+```bash
+yc stop
+```
+
+### Observability
+
+#### yc logs
+
+This command will show the real-time logs of serverless instances across all regions.
 
 ```bash
 yc logs
 ```
 
 Terminate the logs by pressing `Ctrl + C`.
-
-### yc start
-
-This command will start the serverless.
-
-```bash
-yc start
-```
-
-### yc stop
-
-This command will stop the deployments.
-
-```bash
-yc stop
-```
-

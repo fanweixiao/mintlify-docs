@@ -9,25 +9,32 @@ description: "Learn how to deploy NextChat to Vercel and extend abilities with F
   Calling](/function-calling).
 </Tip>
 
-### Step 1. Fork and Deploy [NextChat](https://github.com/ChatGPTNextWeb/ChatGPT-Next-Web) to [Vercel](https://vercel.com/).
+<Steps>
+<Step title="Deploy NextChat to Vercel">
+[NextChat](https://nextchat.dev) is an open-source cross platfrom ChatGPUT/Gemini UI, you can create your own by [fork and deploy NextChat](https://github.com/ChatGPTNextWeb/ChatGPT-Next-Web) to [Vercel](https://vercel.com/).
 
-Configure the environment variables in Vercel:
+Once deployed, config the environment variables on Vercel:
 
-<Frame>
+<Frame caption="Vercel - Environment Variables Settings Page">
   <img
     src="/images/quick-start-vercel-nextchat.jpg"
     style={{ borderRadius: "0.5rem" }}
   />
 </Frame>
 
-- `BASE_URL`: `https://openai.vivgrid.com`
-- `OPENAI_API_KEY`: get from [Vivgrid Dashboard](https://dashboard.vivgrid.com)
+These are the required environment variables:
 
-### Step 2. Try to ask "Compare amazon and shopify network performance" in your AI Agent.
+- `BASE_URL`: `https://openai.vivgrid.com`
+- `OPENAI_API_KEY`: grab it from [Vivgrid Dashboard](https://dashboard.vivgrid.com)
+</Step>
+
+<Step title="It works!">
+
+Let's try to ask the question `Compare amazon and shopify network performance` in your AI application.
 
 You will see the followings:
 
-<Frame>
+<Frame caption="OpenAI Chat Completions w/o Function Calling">
   <img
     src="/images/quick-start-nextchat-1.jpg"
     style={{ borderRadius: "0.5rem" }}
@@ -36,16 +43,17 @@ You will see the followings:
 
 OpenAI can not answer this question, but we can extend the `gpt-4o` model capabilities by [Function Calling](https://platform.openai.com/docs/guides/function-calling) feature, OpenAI has great cookbook on [how to call functions with chat models](https://cookbook.openai.com/examples/how_to_call_functions_with_chat_models), but it's complex to implement and maintain:
 
-<Frame>
+<Frame caption="OpenAI Cookbook: How to call functions with chat models">
   <img
     src="/images/quick-start-nextchat-2.jpg"
     style={{ borderRadius: "0.5rem" }}
   />
 </Frame>
+</Step>
 
-### Step 3. Implement OpenAI Function Calling Serverless in Strong-typed language to extend the abilities of your AI Agent.
+<Step title="Extend your AI application abilities by Calling Serverless in Strong-typed language">
 
-Let's try to implement a `ping` Function Calling serverless in Go, before this, you need to install the [YoMo Framework](https://yomo.run):
+Let's try to implement a `linux ping` Function Calling serverless in Go, before this, you need to install the [YoMo Framework](https://yomo.run):
 
 ```bash
 curl -fsSL https://get.yomo.run | sh
@@ -82,7 +90,9 @@ First, we need define the `description` for our function, this helps OpenAI to u
 
 ```go app.go
 func Description() string {
-  return `if user asks ip or network latency of a domain, you should return the result of the giving domain. try your best to dissect user expressions to infer the right domain names`
+  return `if user asks ip or network latency of a domain, 
+  you should return the result of the giving domain. 
+  try your best to dissect user expressions to infer the right domain names`
 }
 ```
 
@@ -120,13 +130,15 @@ func Handler(ctx serverless.Context) {
   ctx.WriteLLMResult(result)
 }
 ```
+</Step>
+<Step title="Run it locally">
 
-Run it local to test. Create a `.env` file with the following content:
+For test or hosted on your own infra, create a `.env` file with the following content:
 
 ```bash .env
 YOMO_SFN_NAME=llm_sfn_get_ip_lantency
-YOMO_SFN_ZIPPER=z.viv.ac:9000
-YOMO_SFN_CREDENTIAL=app-key-secret:<VIVGRID_APP_KEY>|<VIVGRID_APP_SECRET>
+YOMO_SFN_ZIPPER=zipper.vivgrid.com:9000
+YOMO_SFN_CREDENTIAL=app-key-secret:${VIVGRID_APP_KEY}|${VIVGRID_APP_SECRET}
 ```
 
 then run:
@@ -136,17 +148,19 @@ yomo run app.go
 
 ℹ️ YoMo Stream Function file: /Users/fanweixiao/_wrk/llm-sfn-get-ip-and-latency/sfn.yomo
 ⌛ Create YoMo Stream Function instance...
-ℹ️ Starting YoMo Stream Function instance with zipper: z.viv.ac:9000
+ℹ️ Starting YoMo Stream Function instance with zipper: zipper.vivgrid.com:9000
 ℹ️ Stream Function is running...
 ℹ️ Run: /Users/fanweixiao/_wrk/llm-sfn-get-ip-and-latency/sfn.yomo
-time=2024-05-20T22:50:44.883+07:00 level=INFO msg="connected to zipper" component=StreamFunction sfn_id=<YOUR_APP_ID> sfn_name=llm_sfn_get_ip_lantency zipper_addr=z.viv.ac:9000
+time=2024-05-20T22:50:44.883+07:00 level=INFO msg="connected to zipper" component=StreamFunction sfn_id=<YOUR_APP_ID> sfn_name=llm_sfn_get_ip_lantency zipper_addr=zipper.vivgrid.com:9000
 ```
+</Step>
+<Step title="Deploy to Vivgrid Geo-distributed Network">
 
-### 4. Deploy to Vivgrid
+Next, your serverless will be deployed to Vivgrid Geo-distributed Network, it will be available in multiple regions, and the requests will be routed to the nearest region by Vivgrid Geo-distributed Network.
 
-After test, create a file `yc.yaml` with contents:
+At first, create a file named `yc.yml` with content:
 
-```yaml yc.yaml
+```yaml yc.yml
 app-key: <VIVGRID_APP_KEY>
 app-secret: <VIVGRID_APP_SECRET>
 sfn-name: llm_sfn_get_ip_lantency
@@ -155,7 +169,7 @@ sfn-name: llm_sfn_get_ip_lantency
 then run:
 
 ```bash
-yc upload --src app.go && yc create
+yc deploy
 ```
 
 <Tip>
@@ -182,7 +196,7 @@ $ yc logs
 
 Your AI Agent can now answer the question with network performance comparison:
 
-<Frame>
+<Frame caption="OpenAI Chat Completions w/ Function Calling on Vivgrid">
   <img
     src="/images/quick-start-nextchat-3.jpg"
     style={{ borderRadius: "0.5rem" }}
@@ -195,3 +209,5 @@ Your AI Agent can now answer the question with network performance comparison:
   This reduces latency and improves user experience. For Free Plan
   users, there are 7 regions available.
 </Tip>
+</Step>
+</Steps>
