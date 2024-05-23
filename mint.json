@@ -1,6 +1,11 @@
 {
   "$schema": "https://mintlify.com/schema.json",
   "name": "Vivgrid Developer Portal",
+  "analytics": {
+    "heap": {
+      "appId": "3331813000"
+    }
+  },
   "logo": {
     "dark": "/logo/dark.svg",
     "light": "/logo/light.svg"
