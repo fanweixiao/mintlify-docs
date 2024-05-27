@@ -1,0 +1,77 @@
+---
+title: 'Elia x Vivgrid'
+description: 'How to integrate Vivgrid to Elia'
+---
+
+## Elia
+
+[Elia](https://github.com/darrenburns/elia) is an open source TUI for interacting with LLMs, it's designed to be keyboard-focused and efficient to use.
+
+<Frame type="glass" caption="elia with function calling on Vivgrid">
+  <img src="/images/tuto-elia.jpg" />
+</Frame>
+
+## Install Elia
+
+Elia can be installed by [pipx](https://github.com/pypa/pipx), if you don't have pipx, follow these steps:
+
+<CodeGroup>
+
+```sh Mac
+brew install pipx
+```
+
+```sh Fedora
+sudo dnf install pipx
+```
+
+```sh Ubuntu
+sudo apt update && sudo apt install pipx
+```
+
+```sh Windows
+scoop install pipx
+```
+
+</CodeGroup>
+
+After this, remember run:
+
+```sh
+pipx ensurepath
+```
+
+Then, install Elia:
+
+```sh
+pipx install elia-chat
+```
+
+## Configure Elia for Vivgrid
+
+edit elia configuration file: 
+
+```sh
+vim ~/.config/elia/config.toml
+```
+
+with content:
+
+```toml
+default_model="vivgrid"
+
+[[models]]
+id = "vivgrid"
+name = "openai/vivgrid"
+api_base = "https://openai.vivgrid.com/v1/"
+api_key = "<VIVGRID_API_KEY>|<VIVGRID_API_SECRET
+```
+
+## Try it!
+
+```sh
+elia "how's the weather in London?"
+```
+
+
+

@@ -64,6 +64,12 @@
       ]
     },
     {
+      "group": "Tutorials",
+      "pages": [
+        "tutorial/elia"
+      ]
+    },
+    {
       "group": "API Reference",
       "pages": [
         "api-ref/chat-completion",
