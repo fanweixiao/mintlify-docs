@@ -18,12 +18,13 @@ curl "https://bina.egoist.dev/vivgrid/yc" | sh
 
 `yc --help` to see all sub-commands.
 
-Options:
+General Options:
 
 - `--app-key`: The application key of your Vivgrid project.
 - `--app-secret`: The application secret of your Vivgrid project.
 - `--sfn-name`: The name of your serverless function calling service.
 - `--zipper`: The URL of the Vivgrid Zipper Service endpoint, the default value is `zipper.vivgrid.com`.
+- `--env`: The environment variables for your serverless function. you can pass multiple `--env` options like `yc deploy app.go --env OPENWEATHERMAP_API_KEY=token --env GITHUB_API_KEY=token`.
 
 You can create a `yc.yml` file in the root of your project to configure the deployment settings instead of passing the options every time.
 
@@ -32,7 +33,7 @@ You can create a `yc.yml` file in the root of your project to configure the depl
 This command will deploy your serverless function to Vivgrid hosting.
 
 ```bash
-yc deploy app.go --app-key <APP_KEY> --app-secret <APP_SECRET> --sfn-name your_function_name
+yc deploy app.go --env KEY=VALUE
 ```
 
 ### Manage serverless deployment
@@ -118,3 +119,12 @@ sfn-name: your_function_name
 - `app-key`: The application key of your Vivgrid project.
 - `app-secret`: The application secret of your Vivgrid project.
 - `sfn-name`: The name of your serverless function calling service.
+
+## Set Environment Variables
+
+You can set environment variables for your serverless function by passing the `--env` option.
+
+```bash
+yc deploy app.go --env KEY1=VALUE1 --env KEY2=VALUE2
+```
+
