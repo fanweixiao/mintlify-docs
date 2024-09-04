@@ -77,10 +77,10 @@ func ping(domain string) {
   stats := pinger.Statistics()
 
   // log the result
-  slog.Info("[sfn] get ping latency", "domain", msg.Domain, "ip", ips[0], "latency", stats.AvgRtt, "PacketLoss", fmt.Sprintf("%f%%", stats.PacketLoss))
+  slog.Info("[sfn] get ping latency", "domain", domain, "ip", ips[0], "latency", stats.AvgRtt, "PacketLoss", fmt.Sprintf("%f%%", stats.PacketLoss))
 
   // return result to OpenAI as this is required by OpenAI spec
-  return fmt.Sprintf("domain %s has ip %s with average latency %s, make sure answer with the IP address and Latency", msg.Domain, ips[0], stats.AvgRtt)
+  return fmt.Sprintf("domain %s has ip %s with average latency %s, make sure answer with the IP address and Latency", domain, ips[0], stats.AvgRtt)
 }
 ```
 
@@ -130,6 +130,9 @@ func Handler(ctx serverless.Context) {
   ctx.WriteLLMResult(result)
 }
 ```
+
+<Check>The full source code of this example can be found here: https://github.com/yomorun/llm-function-calling-examples/blob/main/tool-get-ip-and-latency/app.go</Check>
+
 </Step>
 <Step title="Run it locally">
 
@@ -138,7 +141,7 @@ For test or hosted on your own infra, create a `.env` file with the following co
 ```bash .env
 YOMO_SFN_NAME=llm_sfn_get_ip_lantency
 YOMO_SFN_ZIPPER=zipper.vivgrid.com:9000
-YOMO_SFN_CREDENTIAL=app-key-secret:${VIVGRID_APP_KEY}|${VIVGRID_APP_SECRET}
+YOMO_SFN_CREDENTIAL=app-key-secret:${VIVGRID_APP_KEY}.${VIVGRID_APP_SECRET}
 ```
 
 then run:
