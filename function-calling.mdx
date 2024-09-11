@@ -125,8 +125,7 @@ yomo run app.go -z 'zipper.vivgrid.com:9000' -n 'cc-dev' -d 'app-key-secret:<VIV
   </Accordion>
   <Accordion icon="rocket" title="Deploy your serverless to all regions">
   create a ```yc.yaml ``` file at the root of your project directory, then execute 
-    ``` yc upload --src app.go ```, followed by ``` yc create ``` to create the deployment.
-		the ```yc.yaml``` file should look like this:
+    ```yc deploy app.go --env OPENWEATHERMAP_API_KEY=<YOUR_OPENWEATHERMAP_API_KEY>```. the ```yc.yaml``` file should look like this:
 		```yaml
 		app-key: <APP_KEY>
 		app-secret: <APP_SECRET>
@@ -141,5 +140,5 @@ yomo run app.go -z 'zipper.vivgrid.com:9000' -n 'cc-dev' -d 'app-key-secret:<VIV
 curl -v -i https://openai.vivgrid.com/v1/chat/completions \
 -H "Content-Type: application/json" \
 -H "Authorization: Bearer <VIVGRID_TOKEN>" \
--d '{"model": "gpt-4o", "messages": [{"role": "user", "content": "my Vercel pg database service cost $0.1 per hour, how much will I pay in JPY every month?"}], "stream": true}'
+-d '{"model": "gpt-4o", "messages": [{"role": "user", "content": "how is the weather today in Paris and Tokyo?"}], "stream": true}'
 ```
