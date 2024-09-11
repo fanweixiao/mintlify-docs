@@ -140,5 +140,12 @@ yomo run app.go -z 'zipper.vivgrid.com:9000' -n 'cc-dev' -d 'app-key-secret:<VIV
 curl -v -i https://openai.vivgrid.com/v1/chat/completions \
 -H "Content-Type: application/json" \
 -H "Authorization: Bearer <VIVGRID_TOKEN>" \
--d '{"model": "gpt-4o", "messages": [{"role": "user", "content": "how is the weather today in Paris and Tokyo?"}], "stream": true}'
+-d '{
+	"model": "gpt-4o", 
+	"messages": [{
+		"role": "user", 
+		"content": "how is the weather today in Paris and Tokyo?"
+	}], 
+	"stream": true
+}'
 ```
