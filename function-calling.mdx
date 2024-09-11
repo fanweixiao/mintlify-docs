@@ -11,129 +11,109 @@ Write your fist Function Calling Serverless.
 
 <AccordionGroup>
   <Accordion icon="rectangle-terminal" title="Create account on vivgrid">
-    Create account by logging in to our [dashboard](https://dash.vivgrid.com).
+    Create account by logging in to our [dashboard](https://dashboard.vivgrid.com).
     Create a new ``` Project ```. You will get ``` APP_KEY ``` and ``` APP_SECRET ```, 
-		later, you will need ```env YOUR_VIVGRID_TOKEN=app-key-secret:<APP_KEY>|<APP_SECRET>``` to deploy your serverless.
+		later, you will need them to debugging on your local dev server or deploying to vivgrid.
   </Accordion>
   <Accordion icon="github" title="Install the Stateful Serverless Framework: YoMo">
     ``` curl -fsSL https://get.yomo.run | sh ```
   </Accordion>
 </AccordionGroup>
 
-## Write your first Function Calling Serverless
+## Write your first Serverless Function Calling 
 
 ```go app.go
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
 
-	"github.com/joho/godotenv"
-	"github.com/yomorun/yomo/ai"
 	"github.com/yomorun/yomo/serverless"
 )
 
-// Implement DataTags() to observe data with the given tags
-func DataTags() []uint32 {
-	return []uint32{0x11}
-}
-
-// Implement Init() for state initialization, such as loading LLM Model to GPU memory.
-func Init() error {
-	// if API_KEY is absent in ENV, read from .env
-	if _, ok := os.LookupEnv("API_KEY"); !ok {
-		err := godotenv.Load()
-		if err != nil {
-			log.Fatal("Error loading .env file")
-			os.Exit(-1)
-		}
-	}
-	return nil
-}
-
-// Parameters needed for OpenAI Function Calling
-// ref: https://platform.openai.com/docs/guides/function-calling
-type Parameter struct {
-	SourceCurrency string  `json:"source" jsonschema:"description=The source currency to be queried in 3-letter ISO 4217 format"`
-	TargetCurrency string  `json:"target" jsonschema:"description=The target currency to be queried in 3-letter ISO 4217 format"`
-	Amount         float64 `json:"amount" jsonschema:"description=The amount of the currency to be converted to the target currency"`
-}
-
-// Implement Description() to define the description of OpenAI Function Calling
-// ref: https://platform.openai.com/docs/guides/function-calling
+// Description outlines the functionality for the LLM Function Calling feature.
+// It provides a detailed description of the function's purpose, essential for
+// integration with LLM Function Calling. The presence of this function and its
+// return value make the function discoverable and callable within the LLM
+// ecosystem. For more information on Function Calling, refer to the OpenAI
+// documentation at: https://platform.openai.com/docs/guides/function-calling
 func Description() string {
-	return `if user asks currency exchange rate related questions, you should call this function. But if the source currency is other than USD (US Dollar), you should ignore calling tools.`
+	return `Get current weather for a given city. If no city is provided, you 
+	should ask to clarify the city. If the city name is given, you should 
+	convert the city name to Latitude and Longitude geo coordinates, keeping 
+	Latitude and Longitude in decimal format.`
 }
 
-// Implement InputSchema() to define the input schema of the function
+// InputSchema defines the argument structure for LLM Function Calling. It
+// utilizes jsonschema tags to detail the definition. For jsonschema in Go,
+// see https://github.com/invopop/jsonschema.
 func InputSchema() any {
-	return &Parameter{}
+	return &LLMArguments{}
 }
 
-// Implement Handler() to handle the function call
+// LLMArguments defines the arguments for the LLM Function Calling. These
+// arguments are combined to form a prompt automatically.
+type LLMArguments struct {
+	City      string  `json:"city" jsonschema:"description=The city name to get the weather for"`
+	Latitude  float64 `json:"latitude" jsonschema:"description=The latitude of the city, in decimal format, range should be in (-90, 90)"`
+	Longitude float64 `json:"longitude" jsonschema:"description=The longitude of the city, in decimal format, range should be in (-180, 180)"`
+}
+
+// Handler orchestrates the core processing logic of this function.
+// - ctx.ReadLLMArguments() parses LLM Function Calling Arguments (skip if none).
+// - ctx.WriteLLMResult() sends the retrieval result back to LLM.
 func Handler(ctx serverless.Context) {
-	llmCtx, _ := ai.ParseFunctionCallContext(ctx)
+	var p LLMArguments
+	// deserilize the arguments from llm tool_call response
+	ctx.ReadLLMArguments(&p)
 
-	var msg Parameter
-	_ = fcCtx.UnmarshalArguments(&msg)
+	// invoke the openweathermap api and return the result back to LLM
+	result := requestOpenWeatherMapAPI(p.Latitude, p.Longitude)
+	ctx.WriteLLMResult(result)
 
-	rate, err := fetchRate(msg.SourceCurrency, msg.TargetCurrency, msg.Amount)
+	slog.Info("get-weather", "city", p.City, "result", result)
+}
+
+func requestOpenWeatherMapAPI(lat, lon float64) string {
+	const apiURL = "https://api.openweathermap.org/data/2.5/weather?lat=%f&lon=%f&appid=%s&units=metric"
+	apiKey := os.Getenv("OPENWEATHERMAP_API_KEY")
+	url := fmt.Sprintf(apiURL, lat, lon, apiKey)
+
+	resp, err := http.Get(url)
 	if err != nil {
-		slog.Error("[sfn] >> fetchRate error", "err", err)
-		llmCtx.WriteErrors(err)
-		return
+		fmt.Println(err)
+		return "can not get the weather information at the moment"
 	}
-
-	result := fmt.Sprintf("based on today's exchange rate: %f, %f %s is equivalent to approximately %f %s", rate, msg.Amount, msg.SourceCurrency, msg.Amount*rate, msg.TargetCurrency)
-	if rate == 0 {
-		result = fmt.Sprintf("can not understand the target currency %s", msg.TargetCurrency)
-	}
-
-	llmCtx.Write(result)
-}
-
-// Rates is the struct for the response of the exchange rate API
-type Rates struct {
-	Rates map[string]float64 `json:"rates"`
-}
-
-// fetchRate fetches the exchange rate from the API
-func fetchRate(sourceCurrency string, targetCurrency string, _ float64) (float64, error) {
-	resp, _ := http.Get(fmt.Sprintf("https://openexchangerates.org/api/latest.json?app_id=%s&base=%s&symbols=%s", os.Getenv("API_KEY"), sourceCurrency, targetCurrency))
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
-
-	var rt *Rates
-	_ = json.Unmarshal(body, &rt)
-
-	return getRates(targetCurrency, rt)
-}
-
-// getRates gets the target currency from the response
-func getRates(targetCurrency string, rates *Rates) (float64, error) {
-	if rates == nil {
-		return 0, fmt.Errorf("can not get the target currency, target currency is %s", targetCurrency)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+		return "can not get the weather information at the moment"
 	}
 
-	if rate, ok := rates.Rates[targetCurrency]; ok {
-		return rate, nil
-	}
-
-	return 0, fmt.Errorf("can not get the target currency, target currency is %s", targetCurrency)
+	return string(body)
 }
+
+// DataTags specifies the data tags to which this serverless function
+// subscribes, essential for data reception. Upon receiving data with these
+// tags, the Handler function is triggered.
+func DataTags() []uint32 {
+	return []uint32{0x62}
+}
+
 ```
 
 ## Run on your dev machine or self-managed server
 
 ```sh
-yomo run app.go -z 'zipper.vivgrid.com:9000' -n 'cc-dev' -d '<YOUR_VIVGRID_TOKEN>'
+export VIVGRID_TOKEN=<YOUR_VIVGRID_APP_KEY>.<YOUR_VIVGRID_APP_SECRET>
+export OPENWEATHERMAP_API_KEY=<YOUR_OPENWEATHERMAP_API_KEY>
+yomo run app.go -z 'zipper.vivgrid.com:9000' -n 'cc-dev' -d 'app-key-secret:<VIVGRID_TOKEN>'
 ```
 
 ## Deploy to vivgrid as Geo-distributed Serverless
@@ -150,7 +130,7 @@ yomo run app.go -z 'zipper.vivgrid.com:9000' -n 'cc-dev' -d '<YOUR_VIVGRID_TOKEN
 		```yaml
 		app-key: <APP_KEY>
 		app-secret: <APP_SECRET>
-		sfn-name: llm_sfn_currency_converter
+		sfn-name: llm_sfn_get_weather
 		```
   </Accordion>
 </AccordionGroup>
@@ -160,6 +140,6 @@ yomo run app.go -z 'zipper.vivgrid.com:9000' -n 'cc-dev' -d '<YOUR_VIVGRID_TOKEN
 ```sh
 curl -v -i https://openai.vivgrid.com/v1/chat/completions \
 -H "Content-Type: application/json" \
--H "Authorization: Bearer <YOUR_VIVGRID_TOKEN>" \
+-H "Authorization: Bearer <VIVGRID_TOKEN>" \
 -d '{"model": "gpt-4o", "messages": [{"role": "user", "content": "my Vercel pg database service cost $0.1 per hour, how much will I pay in JPY every month?"}], "stream": true}'
 ```
