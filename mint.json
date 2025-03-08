@@ -32,8 +32,8 @@
   },
   "tabs": [
     {
-      "name": "Go to Dashboard",
-      "url": "https://dashboard.vivgrid.com"
+      "name": "Go to Console",
+      "url": "https://console.vivgrid.com"
     }
   ],
   "anchors": [
@@ -48,9 +48,9 @@
       "url": "https://discord.gg/RMtNhx7vds"
     },
     {
-      "name": "Vivgrid Dashboard",
+      "name": "Vivgrid Console",
       "icon": "newspaper",
-      "url": "https://dashboard.vivgrid.com"
+      "url": "https://console.vivgrid.com"
     }
   ],
   "navigation": [
